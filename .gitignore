@@ -1,0 +1,15 @@
+# directories:
+Lib
+lib64
+Include
+etc
+bin
+Scripts
+__pycache__
+midis
+original
+output
+share
+
+# cfg
+pyvenv.cfg
