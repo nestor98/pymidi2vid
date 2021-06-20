@@ -5,6 +5,10 @@ Play any song in video. Take a midi of the song, a video of yourself playing ind
 ## Teaser
 [![Flight of the Bumblebee](http://img.youtube.com/vi/I3syTzmhDcQ/0.jpg)](http://www.youtube.com/watch?v=I3syTzmhDcQ "Flight of the Bumblebee is not that hard")
 
+## Installation
+- Make a [virtual environment](https://docs.python.org/3/library/venv.html) (```python3 -m venv .```, etc.).
+- ```pip3 install -r requirements.txt```
+
 ## Usage
 - Record yourself playing an instrument one note at a time, ascending a half step at a time, with silences in between.
 - Use audiosegmentation.py to find where each note starts:
