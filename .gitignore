@@ -13,3 +13,8 @@ share
 
 # cfg
 pyvenv.cfg
+
+*.png
+video0.py
+editorwithsettings.py
+settings.py

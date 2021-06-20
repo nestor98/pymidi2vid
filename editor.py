@@ -112,11 +112,13 @@ def merge_parse(mid, ignore = [6,7,8, 10, 11, 12]):
     Tempo changes are translated to (-1,tempo,t), unknown messages to (-2,0,t)
     """
     tracks = []
+
     for i, track in enumerate(mid.tracks):
         print_d('Track {}: {}'.format(i, track.name))
         if i not in ignore:
             tracks += [track]
         else: # fake track only to keep times
+            print('(ignoring this one)')
             newtrack = mido.MidiTrack()
             for msg in track:
                 newtrack.append(mido.Message('program_change', program=0, time=msg.time))
@@ -151,6 +153,10 @@ def merge_parse(mid, ignore = [6,7,8, 10, 11, 12]):
 
     return notes, tempo, total_ticks
 
+def print_notes(notes):
+    all_notes = {n[0] for n in notes if n[0]>=0} # set, remove repetitions
+    for note in sorted(all_notes): # sorted
+        print(note)
 
 
 def parseMidi(mid, args):
@@ -202,12 +208,22 @@ def parseMidi(mid, args):
 def main(args):
     program_times = {}
 
+    do_chromatic = args.lowest_note != -1
     # ---------------------------------------------------------------------
     # Parse the midi file:
     start = timer()
     mid = mido.MidiFile(args.midi_file)
-    notes, tempo, total_ticks = merge_parse(mid) if args.track == -1 else parseMidi(mid, args)
+    ignore = []
+    if args.track != -1:
+        # print()
+        ignore = [i for i in range(1,50) if i != args.track]
+    print("ignore:",ignore)
+    notes, tempo, total_ticks = merge_parse(mid, ignore) # else parseMidi(mid, args)
     end = timer()
+
+    if args.print_track:
+        print_notes(notes)
+        exit(0)
 
     program_times['midi'] = end - start
     print("----------------------------\nMidi parsed in:", program_times['midi'], "s")
@@ -221,7 +237,8 @@ def main(args):
     # ---------------------------------------------------------------------
     # Initialize the video:
     start = timer()
-    v = Video(args.clip, args.timestamps)
+    # rows = args.voices
+    v = Video(args.clip, args.timestamps, rows=args.voices,cols=args.voices,text=do_chromatic,quality=args.quality,do_fade=True,only_audio=False)
 
     end = timer()
     program_times['initialize'] = end - start
@@ -235,7 +252,10 @@ def main(args):
 
     #################### Chromatic test:
     # min 50
-    #notes = chromatic(lowest = 50, highest = 74, duration = 0.5)
+    if do_chromatic:
+        notes = chromatic(lowest = args.lowest_note, highest = 76, duration = 1)
+        # notes = chromatic(lowest = args.lowest_note, highest = args.lowest_note+12, duration = 1)
+
 
     #################### Octaves test:
     # min 50
@@ -257,7 +277,7 @@ def main(args):
     desired_length = args.max_duration # sec
     for (note, vel, ticks) in notes:
         curr += ticks
-        t = mido.tick2second(ticks, mid.ticks_per_beat, tempo)
+        t = mido.tick2second(ticks, mid.ticks_per_beat, tempo) if not do_chromatic else ticks
         curr_s += t
         # just some feedback:
         # curr_s = mido.tick2second(curr, mid.ticks_per_beat, tempo)
@@ -311,6 +331,8 @@ if __name__ == "__main__":
     # TODO: permitir usar todas las tracks!!
     parser.add_argument('-tr', '--track', help='Number of the track from the midi to generate (default: all)', type=int, default=-1)
     parser.add_argument('-c', '--clip', help='original video', type=str, default="original/escala.mp4")
+
+    # parser.add_argument('-i2', '--input2', help='Input video file 2', type=str, default="")
     parser.add_argument('-t', '--timestamps', help='timestamps for each note in the video', type=str, default="original/times-escala.csv")
     parser.add_argument('-o', '--output', help='output file', type=str, default="out.mp4")
 
@@ -320,6 +342,16 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--slow', help='slow mo (-s 2 makes it twice as slow)', type=float, default=1)
     parser.add_argument('-ini', '--initial_t', help='initial time (s) in midi to start video', type=float, default=0)
     parser.add_argument('-max', '--max_duration', help='max output duration', type=float, default=100000)
+
+
+    parser.add_argument('-q', '--quality', help='reduce quality (e.g. 0.5)', type=float, default=1)
+
+    parser.add_argument('-low', '--lowest_note', help='make a chromatic scale starting at this note', type=int, default=-1)
+
+    parser.add_argument('-pt', '--print_track', help='Print the notes from the track', dest='print_track', action='store_true')
+    parser.set_defaults(print_track=False)
+
+
 
     args = parser.parse_args()
     main(args)
